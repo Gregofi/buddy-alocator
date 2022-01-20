@@ -99,8 +99,7 @@ static struct fragment *buddy_addr(struct fragment *f, int i)
 		 buddy. If we 6th bit, if it's zero it will add 64, if it's one it will
 		 substract 64, so we will get the address either way.
 	*/
-	return (struct fragment *)((((uint8_t *)f - (uint8_t *)mem) ^ (1 << i)) +
-														 (uint8_t *)mem);
+	return (struct fragment *)((((uint8_t *)f - (uint8_t *)mem) ^ (1 << i)) + (uint8_t *)mem);
 }
 
 static void split(struct fragment *f, int i)
@@ -115,18 +114,18 @@ static void split(struct fragment *f, int i)
 	add_free(buddy, i - 1);
 }
 
-void HeapInit(void *memPool, int memSize)
+void alloc_init(void *mem_pool, int mem_size)
 {
 	for (size_t i = 0; i < LEVELS; ++i)
 		mem_arr[i] = NULL;
 	taken_blocks = 0;
 	heap_size = 0;
-	mem = (struct fragment *)memPool;
+	mem = (struct fragment *)mem_pool;
 	/* Try to allocate as much memory as possible */
 	while (true) {
-		int i = pow2(memSize - heap_size);
+		int i = pow2(mem_size - heap_size);
 		int new_size = 1 << i;
-		if (new_size < MIN_BLOCK_SIZE || heap_size + new_size > memSize)
+		if (new_size < MIN_BLOCK_SIZE || heap_size + new_size > mem_size)
 			break;
 		struct fragment *rem = (struct fragment *)((uint8_t *)mem + heap_size);
 		*rem = {NULL, new_size - frag_size, MAGIC_VAL};
@@ -136,7 +135,7 @@ void HeapInit(void *memPool, int memSize)
 	}
 }
 
-void *HeapAlloc(int size)
+void *alloc_malloc(int size)
 {
 	if (size < MIN_BLOCK_SIZE)
 		size = MIN_BLOCK_SIZE;
@@ -178,10 +177,10 @@ static struct fragment *merge(struct fragment *f, int i)
 	return f;
 }
 
-bool HeapFree(void *blk)
+bool alloc_free(void *ptr)
 {
-	struct fragment *f = (struct fragment *)blk - 1;
-	if (!blk || !is_block(f))
+	struct fragment *f = (struct fragment *)ptr - 1;
+	if (!ptr || !is_block(f))
 		return false;
 	set_taken(f, false);
 
@@ -197,7 +196,7 @@ bool HeapFree(void *blk)
 	return true;
 }
 
-void HeapDone(int *pendingBlk)
+void alloc_done(int *pending_blk)
 {
-	*pendingBlk = taken_blocks;
+	*pending_blk = taken_blocks;
 }
